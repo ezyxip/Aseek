@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=ru.pmifi.Aseek
+Exec=/usr/bin/ru.pmifi.Aseek
+Name=Aseek
+Name[ru]=Эйсик
+
+[X-Application]
+Permissions=Internet
+OrganizationName=ru.pmifi
+ApplicationName=Aseek
+ExecDBus=/usr/bin/ru.pmifi.Aseek
