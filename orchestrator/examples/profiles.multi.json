@@ -1,0 +1,41 @@
+[
+  {
+    "name": "local",
+    "servers": [
+      {
+        "url": "http://192.168.1.100:8080",
+        "weight": 1.0,
+        "timeout_ms": 10000
+      }
+    ]
+  },
+  {
+    "name": "production",
+    "servers": [
+      {
+        "url": "http://search01.example.com:8080",
+        "weight": 2.0,
+        "timeout_ms": 5000
+      },
+      {
+        "url": "http://search02.example.com:8080",
+        "weight": 1.0,
+        "timeout_ms": 5000
+      },
+      {
+        "url": "http://search03.example.com:8080",
+        "weight": 1.0,
+        "timeout_ms": 10000
+      }
+    ]
+  },
+  {
+    "name": "fallback",
+    "servers": [
+      {
+        "url": "http://backup-search.local:8080",
+        "weight": 1.0
+      }
+    ]
+  }
+]

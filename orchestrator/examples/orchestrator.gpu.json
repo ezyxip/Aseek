@@ -1,0 +1,24 @@
+{
+  "llama": {
+    "binary": "/opt/aurora/bin/llama-server",
+    "model": "/opt/aurora/models/vikhr-qwen-q4.gguf",
+    "port": 8081,
+    "ctx_size": 8192,
+    "threads": 8,
+    "slots": 4,
+    "batch": 512,
+    "gpu_layers": 35
+  },
+  "streaming": {
+    "flush_interval_ms": 30
+  },
+  "network": {
+    "request_timeout_ms": 30000
+  },
+  "logging": {
+    "level": "info"
+  },
+  "reranker": {
+    "url": "http://127.0.0.1:8000"
+  }
+}
