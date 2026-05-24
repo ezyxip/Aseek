@@ -69,9 +69,7 @@ Aseek — приложение для ОС Аврора с локальным RA
 
 ### Aurora OS приложение
 
-```bash
-mb2 -t AuroraOS_5.2.0.180_aarch64 build
-```
+Сборка выполняется из Aurora IDE.
 
 ### Оркестратор
 
@@ -89,7 +87,10 @@ go run ./cmd/cli
 
 ## Конфигурация
 
-Оркестратор читает JSON-конфиг из `~/.config/aurora-rag/orchestrator.json` (или путь из аргумента командной строки):
+Оркестратор читает JSON-конфиг. Путь определяется (в порядке приоритета):
+1. Аргумент командной строки (`orchestrator path/to/config.json`)
+2. Переменная окружения `AURORA_CONFIG`
+3. `~/.config/aurora-rag/orchestrator.json`
 
 ```json
 {
@@ -99,7 +100,9 @@ go run ./cmd/cli
     "port": 8081,
     "ctx_size": 4096,
     "threads": 4,
-    "batch": 256
+    "slots": 1,
+    "batch": 256,
+    "gpu_layers": 0
   },
   "streaming": {
     "flush_interval_ms": 40
@@ -109,8 +112,18 @@ go run ./cmd/cli
   },
   "logging": {
     "level": "debug"
+  },
+  "reranker": {
+    "url": "http://127.0.0.1:8082/rerank"
   }
 }
+```
+
+Обязательные поля: `llama.binary`, `llama.model`, `llama.port`.
+
+Остальные конфигурационные файлы (пути переопределяются через `AURORA_PROFILES` и `AURORA_TEMPLATES`):
+- `~/.config/aurora-rag/profiles.json` — список поисковых серверов
+- `~/.config/aurora-rag/prompts/` — директория с шаблонами промптов (`system.txt`, `rag.txt`, `no_results.txt`)
 ```
 
 ## IPC-протокол
