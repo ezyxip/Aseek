@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(ru.pmifi.Aseek CXX)
+
+project(ru.pmifi.Aseek C CXX)
 
 find_package (Qt5 COMPONENTS Core Network Qml Gui Quick LinguistTools REQUIRED)
 
@@ -21,7 +22,20 @@ set(SOURCES
     qml/cover/DefaultCoverPage.qml
     qml/pages/AboutPage.qml
     qml/pages/MainPage.qml
+    qml/pages/ProfilesPage.qml
+    qml/pages/EditProfilePage.qml
+    qml/pages/EditMcpPage.qml
     src/main.cpp
+    src/backendprocess.h
+    src/backendprocess.cpp
+    src/markdownconverter.h
+    src/markdownconverter.cpp
+    src/md4c.h
+    src/md4c.c
+    src/md4c-html.h
+    src/md4c-html.c
+    src/entity.h
+    src/entity.c
 )
 
 set(CMAKE_SKIP_RPATH FALSE)
@@ -32,7 +46,7 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/lib")
 set(LLAMA_BUILD_COMMON      ON CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TOOLS       ON CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES    OFF CACHE BOOL "" FORCE)
-set(LLAMA_TOOLS_INSTALL     ON CACHE BOOL "" FORCE)
+set(LLAMA_TOOLS_INSTALL     OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_TESTS       OFF CACHE BOOL "" FORCE)
 SET(LLAMA_BUILD_SERVER      ON CACHE BOOL "" FORCE)
 
@@ -62,8 +76,11 @@ set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
 # set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -march=armv8-a -mtune=cortex-a53 -O3 -ffast-math -ftree-vectorize -fomit-frame-pointer" CACHE STRING "" FORCE)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a -mtune=cortex-a53 -O3 -ffast-math -ftree-vectorize -fomit-frame-pointer" CACHE STRING "" FORCE)
 
+include(GNUInstallDirs)
 add_subdirectory(llama.cpp/)
 
+set(PREBUILT_DIR ${CMAKE_SOURCE_DIR}/prebuilt/linux-arm64)
+set(ORCHESTRATOR_BIN ${PREBUILT_DIR}/aseek-orchestrator)
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${QmFiles})
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -75,14 +92,31 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 >)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt5::Quick
+    Qt5::Network
     ${AURORA_LDFLAGS}
 )
+
+set(LIBEXEC_DIR ${CMAKE_INSTALL_LIBEXECDIR}/${PROJECT_NAME})
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/llama-server DESTINATION ${LIBEXEC_DIR})
+install(PROGRAMS ${ORCHESTRATOR_BIN} DESTINATION ${LIBEXEC_DIR})
 install(DIRECTORY qml
     DESTINATION share/${PROJECT_NAME}
+)
+install(DIRECTORY images
+    DESTINATION share/${PROJECT_NAME}
+)
+
+install(FILES
+    ${CMAKE_SOURCE_DIR}/configs/orchestrator.json
+    ${CMAKE_SOURCE_DIR}/configs/profiles.json
+    DESTINATION share/${PROJECT_NAME}/default-configs
+)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/configs/prompts
+    DESTINATION share/${PROJECT_NAME}/default-configs
 )
 
 foreach(_file IN LISTS QmFiles)
