@@ -1,0 +1,25 @@
+{
+  "llama": {
+    "binary": "/usr/libexec/ru.pmifi.Aseek/llama-server",
+    "model": "/home/aurora/models/model.gguf",
+    "port": 9081,
+    "ctx_size": 2048,
+    "threads": 4,
+    "slots": 1,
+    "batch": 256,
+    "gpu_layers": 0,
+    "temperature": 0.7
+  },
+  "streaming": {
+    "flush_interval_ms": 40
+  },
+  "network": {
+    "request_timeout_ms": 15000
+  },
+  "logging": {
+    "level": "info"
+  },
+  "reranker": {
+    "url": ""
+  }
+}
