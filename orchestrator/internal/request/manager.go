@@ -149,6 +149,10 @@ func (m *Manager) runPipeline(ctx context.Context, query string, reqID uint32, g
 		return
 	}
 
+	if profilePrompt := m.profiles.ActivePrompt(); profilePrompt != "" {
+		systemPrompt += "\n\n" + profilePrompt
+	}
+
 	docs, err := m.pipeline.Execute(ctx, query)
 	if err != nil {
 		m.sendError(fmt.Sprintf("pipeline: %v", err), reqID)
@@ -179,6 +183,7 @@ func (m *Manager) runPipeline(ctx context.Context, query string, reqID uint32, g
 		return
 	}
 
+	m.sendSources(reqID, docs)
 	m.ipc.Send(ipc.NewMessage(ipc.TypeDone, reqID, nil))
 	m.log.Info("pipeline complete")
 }
@@ -220,6 +225,33 @@ func (m *Manager) handleProfileSwitch(msg *ipc.Message) {
 	}
 
 	m.ipc.Send(ipc.NewMessage(ipc.TypePong, msg.Header.RequestID, []byte(`{"status":"ok"}`)))
+}
+
+type sourceDoc struct {
+	Index int     `json:"index"`
+	Title string  `json:"title"`
+	Source string `json:"source"`
+	Score  float64 `json:"score"`
+}
+
+func (m *Manager) sendSources(reqID uint32, docs []pipeline.Document) {
+	srcs := make([]sourceDoc, 0, len(docs))
+	for _, d := range docs {
+		srcs = append(srcs, sourceDoc{
+			Index:  d.Index,
+			Title:  d.Title,
+			Source: d.Source,
+			Score:  d.Score,
+		})
+	}
+	data, err := json.Marshal(srcs)
+	if err != nil {
+		m.log.Error("marshal sources", "error", err)
+		return
+	}
+	if err := m.ipc.Send(ipc.NewMessage(ipc.TypeSources, reqID, data)); err != nil {
+		m.log.Error("send sources", "error", err)
+	}
 }
 
 func (m *Manager) sendError(msg string, reqID uint32) {

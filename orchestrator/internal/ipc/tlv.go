@@ -25,6 +25,7 @@ const (
 	TypePong       MessageType = 8
 	TypeProfileList   MessageType = 9
 	TypeProfileSwitch MessageType = 10
+	TypeSources    MessageType = 11
 )
 
 type Header struct {

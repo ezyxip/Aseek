@@ -9,14 +9,15 @@ import (
 )
 
 type LlamaConfig struct {
-	Binary    string `json:"binary"`
-	Model     string `json:"model"`
-	Port      int    `json:"port"`
-	CtxSize   int    `json:"ctx_size"`
-	Threads   int    `json:"threads"`
-	Slots     int    `json:"slots"`
-	Batch     int    `json:"batch"`
-	GPULayers int    `json:"gpu_layers"`
+	Binary      string  `json:"binary"`
+	Model       string  `json:"model"`
+	Port        int     `json:"port"`
+	CtxSize     int     `json:"ctx_size"`
+	Threads     int     `json:"threads"`
+	Slots       int     `json:"slots"`
+	Batch       int     `json:"batch"`
+	GPULayers   int     `json:"gpu_layers"`
+	Temperature float64 `json:"temperature"`
 }
 
 type StreamingConfig struct {

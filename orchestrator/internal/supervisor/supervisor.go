@@ -146,6 +146,9 @@ func (s *Supervisor) buildArgs() []string {
 	if s.cfg.GPULayers > 0 {
 		args = append(args, "--gpu-layers", fmt.Sprintf("%d", s.cfg.GPULayers))
 	}
+	if s.cfg.Temperature > 0 {
+		args = append(args, "--temp", fmt.Sprintf("%g", s.cfg.Temperature))
+	}
 	return args
 }
 

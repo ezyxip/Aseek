@@ -1,6 +1,7 @@
 [
   {
     "name": "local",
+    "prompt": "Ты помогаешь с внутренними документами локальной сети.",
     "servers": [
       {
         "url": "http://192.168.1.100:8080",
@@ -11,6 +12,7 @@
   },
   {
     "name": "production",
+    "prompt": "Ты отвечаешь по документации production-серверов.",
     "servers": [
       {
         "url": "http://search01.example.com:8080",

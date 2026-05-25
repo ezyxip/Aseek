@@ -135,7 +135,7 @@ type rerankResult struct {
 
 func (p *Pipeline) rerank(ctx context.Context, query string, docs []Document) []Document {
 	if p.rerankerURL == "" || len(docs) == 0 {
-		return docs
+		return p.topN(docs, 3)
 	}
 
 	texts := make([]string, len(docs))
@@ -147,13 +147,13 @@ func (p *Pipeline) rerank(ctx context.Context, query string, docs []Document) []
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		p.log.Warn("rerank marshal", "error", err)
-		return docs
+		return p.topN(docs, 3)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.rerankerURL+"/reranking", bytes.NewReader(body))
 	if err != nil {
 		p.log.Warn("rerank request", "error", err)
-		return docs
+		return p.topN(docs, 3)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -161,19 +161,19 @@ func (p *Pipeline) rerank(ctx context.Context, query string, docs []Document) []
 	resp, err := client.Do(req)
 	if err != nil {
 		p.log.Warn("rerank call", "error", err)
-		return docs
+		return p.topN(docs, 3)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		p.log.Warn("rerank status", "code", resp.StatusCode)
-		return docs
+		return p.topN(docs, 3)
 	}
 
 	var rr rerankResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rr); err != nil {
 		p.log.Warn("rerank decode", "error", err)
-		return docs
+		return p.topN(docs, 3)
 	}
 
 	ordered := make([]Document, len(docs))
@@ -185,5 +185,12 @@ func (p *Pipeline) rerank(ctx context.Context, query string, docs []Document) []
 		}
 	}
 
-	return ordered
+	return p.topN(ordered, 3)
+}
+
+func (p *Pipeline) topN(docs []Document, n int) []Document {
+	if len(docs) <= n {
+		return docs
+	}
+	return docs[:n]
 }

@@ -18,6 +18,7 @@ type Server struct {
 type Profile struct {
 	Name    string   `json:"name"`
 	Servers []Server `json:"servers"`
+	Prompt  string   `json:"prompt,omitempty"`
 }
 
 type Manager struct {
@@ -71,6 +72,12 @@ func (m *Manager) ActiveProfile() Profile {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.active
+}
+
+func (m *Manager) ActivePrompt() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.active.Prompt
 }
 
 func (m *Manager) ListProfiles() []Profile {

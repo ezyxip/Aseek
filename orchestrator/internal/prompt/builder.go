@@ -66,9 +66,13 @@ func (b *Builder) BuildRAGPrompt(ctx context.Context, query string, docs []pipel
 func (b *Builder) buildDefaultRAG(query string, docs []pipeline.Document) string {
 	prompt := "Ты отвечаешь только по предоставленным документам.\n\nДокументы:\n\n"
 	for _, d := range docs {
-		prompt += fmt.Sprintf("[%d]\n%s\n[/%d]\n\n", d.Index, d.Content, d.Index)
+		title := d.Title
+		if title == "" {
+			title = fmt.Sprintf("Документ %d", d.Index)
+		}
+		prompt += fmt.Sprintf("[%d] %s\n%s\n[/%d]\n\n", d.Index+1, title, d.Content, d.Index)
 	}
-	prompt += fmt.Sprintf("Вопрос:\n%s\n\nОтвет:\n", query)
+	prompt += fmt.Sprintf("Вопрос:\n%s\n\nПри ответе ссылайся на номера документов в скобках, например [1].\nОтвет:\n", query)
 	return prompt
 }
 
@@ -81,7 +85,11 @@ func (b *Builder) renderTemplate(tmpl string, query string, docs []pipeline.Docu
 
 	var docsBuilder strings.Builder
 	for _, d := range docs {
-		docsBuilder.WriteString(fmt.Sprintf("[%d]\n%s\n[/%d]\n\n", d.Index, d.Content, d.Index))
+		title := d.Title
+		if title == "" {
+			title = fmt.Sprintf("Документ %d", d.Index)
+		}
+		docsBuilder.WriteString(fmt.Sprintf("[%d] %s\n%s\n[/%d]\n\n", d.Index, title, d.Content, d.Index))
 	}
 	result = strings.ReplaceAll(result, "{{.Results}}", docsBuilder.String())
 
