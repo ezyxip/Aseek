@@ -153,7 +153,16 @@ func (m *Manager) runPipeline(ctx context.Context, query string, reqID uint32, g
 		systemPrompt += "\n\n" + profilePrompt
 	}
 
-	docs, err := m.pipeline.Execute(ctx, query)
+	docs, err := m.pipeline.ExecuteWithCallback(ctx, query, func(stage, detail string, count int) {
+		payload, _ := json.Marshal(map[string]interface{}{
+			"stage": stage,
+			"detail": detail,
+			"count":  count,
+		})
+		if err := m.ipc.Send(ipc.NewMessage(ipc.TypeStage, reqID, payload)); err != nil {
+			m.log.Warn("send stage", "error", err)
+		}
+	})
 	if err != nil {
 		m.sendError(fmt.Sprintf("pipeline: %v", err), reqID)
 		return
@@ -165,12 +174,16 @@ func (m *Manager) runPipeline(ctx context.Context, query string, reqID uint32, g
 		return
 	}
 
+	m.sendStage(reqID, "prefill", "Подготовка промпта...", 0)
+
 	genErrCh := make(chan error, 1)
 	tokenCh := make(chan string)
 	go func() {
 		defer close(tokenCh)
 		genErrCh <- m.llama.Generate(ctx, systemPrompt, ragPrompt, tokenCh)
 	}()
+
+	m.sendStage(reqID, "streaming", "Генерация ответа...", 0)
 
 	if err := m.streaming.Stream(ctx, tokenCh, func(data []byte) error {
 		return m.ipc.Send(ipc.NewMessage(ipc.TypeToken, reqID, data))
@@ -232,6 +245,18 @@ type sourceDoc struct {
 	Title string  `json:"title"`
 	Source string `json:"source"`
 	Score  float64 `json:"score"`
+}
+
+func (m *Manager) sendStage(reqID uint32, stage, detail string, count int) {
+	payload, err := json.Marshal(map[string]interface{}{
+		"stage":  stage,
+		"detail": detail,
+		"count":  count,
+	})
+	if err != nil {
+		return
+	}
+	m.ipc.Send(ipc.NewMessage(ipc.TypeStage, reqID, payload))
 }
 
 func (m *Manager) sendSources(reqID uint32, docs []pipeline.Document) {

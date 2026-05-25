@@ -14,8 +14,8 @@ type stageInfo struct {
 }
 
 var stages = []struct {
-	key   string
-	icon  string
+	key  string
+	icon string
 	label string
 }{
 	{"searching", "🔍", "Поиск"},
@@ -52,6 +52,8 @@ func printPipeline(msg *ipc.Message, done bool) {
 		case done || i < current:
 			fmt.Printf("  %s \033[32m✓ %s\033[0m\n", s.icon, s.label)
 		case i == current:
+			spin := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+			_ = spin
 			line := fmt.Sprintf("  %s \033[33m⟳ %s\033[0m", s.icon, s.label)
 			if detail != "" {
 				line += " \033[90m" + detail + "\033[0m"
@@ -61,6 +63,7 @@ func printPipeline(msg *ipc.Message, done bool) {
 			fmt.Printf("  %s \033[90m· %s\033[0m\n", s.icon, s.label)
 		}
 	}
+	// rewind
 	fmt.Printf("\033[%dA", len(stages)+1)
 }
 

@@ -45,10 +45,20 @@ func New(defaultTimeout time.Duration, profiles *profile.Manager, log *logging.L
 	}
 }
 
+type StageCallback func(stage string, detail string, count int)
+
 func (p *Pipeline) Execute(ctx context.Context, query string) ([]Document, error) {
+	return p.ExecuteWithCallback(ctx, query, nil)
+}
+
+func (p *Pipeline) ExecuteWithCallback(ctx context.Context, query string, cb StageCallback) ([]Document, error) {
 	servers := p.profiles.GetServers()
 	if len(servers) == 0 {
 		return nil, fmt.Errorf("no search servers configured")
+	}
+
+	if cb != nil {
+		cb("searching", "Поиск документов...", 0)
 	}
 
 	var allDocs []Document
@@ -76,9 +86,27 @@ func (p *Pipeline) Execute(ctx context.Context, query string) ([]Document, error
 		return nil, fmt.Errorf("all search servers failed: %w", lastErr)
 	}
 
-	allDocs = p.rerank(ctx, query, allDocs)
+	if cb != nil {
+		cb("searching", "", len(allDocs))
+	}
+
+	allDocs = p.rerankWithCallback(ctx, query, allDocs, cb)
 
 	return allDocs, nil
+}
+
+func (p *Pipeline) rerankWithCallback(ctx context.Context, query string, docs []Document, cb StageCallback) []Document {
+	if cb != nil {
+		cb("reranking", "Ранжирование...", 0)
+	}
+
+	result := p.rerank(ctx, query, docs)
+
+	if cb != nil {
+		cb("reranking", "", len(result))
+	}
+
+	return result
 }
 
 func (p *Pipeline) searchServer(ctx context.Context, srv profile.Server, query string) ([]Document, error) {
