@@ -6,43 +6,72 @@ Page {
     allowedOrientations: Orientation.All
 
     SilicaFlickable {
-        objectName: "flickable"
         anchors.fill: parent
-        contentHeight: layout.height + Theme.paddingLarge
+        contentHeight: contentColumn.height + Theme.paddingLarge
 
         Column {
-            id: layout
-            objectName: "layout"
+            id: contentColumn
             width: parent.width
+            spacing: Theme.paddingMedium
 
             PageHeader {
-                objectName: "pageHeader"
-                title: qsTr("About Application")
+                objectName: "aboutPageHeader"
+                title: qsTr("О приложении")
+            }
+
+            Image {
+                source: Qt.resolvedUrl("../icons/Aseek.svg")
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Theme.iconSizeLarge
+                height: width
+                fillMode: Image.PreserveAspectFit
             }
 
             Label {
-                objectName: "descriptionText"
-                anchors { left: parent.left; right: parent.right; margins: Theme.horizontalPageMargin }
-                color: palette.highlightColor
-                font.pixelSize: Theme.fontSizeSmall
-                textFormat: Text.RichText
-                wrapMode: Text.WordWrap
-                text: qsTr("#descriptionText")
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeMedium
+                font.bold: true
+                text: qsTr("Aseek")
+            }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                horizontalAlignment: Text.AlignHCenter
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                wrapMode: Text.Wrap
+                text: qsTr("Семантический поиск с RAG на устройстве")
             }
 
             SectionHeader {
-                objectName: "licenseHeader"
-                text: qsTr("3-Clause BSD License")
+                text: qsTr("Описание")
             }
 
             Label {
-                objectName: "licenseText"
-                anchors { left: parent.left; right: parent.right; margins: Theme.horizontalPageMargin }
-                color: palette.highlightColor
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                color: Theme.primaryColor
                 font.pixelSize: Theme.fontSizeSmall
-                textFormat: Text.RichText
-                wrapMode: Text.WordWrap
-                text: qsTr("#licenseText")
+                wrapMode: Text.Wrap
+                text: qsTr("Aseek — приложение для поиска информации в документах с использованием RAG-пайплайна и LLM. Запросы обрабатываются на устройстве через llama.cpp, поиск выполняется по внешним search-серверам.")
+                bottomPadding: Theme.paddingMedium
+            }
+
+            SectionHeader {
+                text: qsTr("Лицензия")
+            }
+
+            Label {
+                x: Theme.horizontalPageMargin
+                width: parent.width - 2 * Theme.horizontalPageMargin
+                color: Theme.primaryColor
+                font.pixelSize: Theme.fontSizeSmall
+                wrapMode: Text.Wrap
+                text: qsTr("Распространяется под лицензией BSD 3-Clause.\n\nCopyright (c) 2025, ru.pmifi.\nAll rights reserved.")
             }
         }
     }
