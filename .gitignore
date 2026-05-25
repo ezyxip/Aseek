@@ -1,6 +1,7 @@
 # Build
 build/
 CMakeLists.txt.user
+CMakeLists.txt.user*
 *.user
 
 # IDE
@@ -17,3 +18,7 @@ CMakeLists.txt.user
 # Binary
 orchestrator/aseek-orchestrator
 orchestrator/aseek-orchestrator.exe
+prebuilt/
+
+# Test aux files
+orchestrator/test/
