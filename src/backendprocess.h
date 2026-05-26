@@ -7,6 +7,9 @@
 #include <QTimer>
 #include <QJsonArray>
 #include <QtGlobal>
+#include <QFile>
+#include <QDateTime>
+#include <QDir>
 
 class BackendProcess : public QObject
 {
@@ -71,6 +74,9 @@ private slots:
     void retryConnect();
 
 private:
+    void log(const QString &message);
+    void logEnv();
+
     struct TlvHeader {
         quint16 magic;
         quint16 version;
