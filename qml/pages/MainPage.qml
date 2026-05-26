@@ -14,15 +14,80 @@ Page {
     property string errorText: ""
     property int docCount: 0
     property int rerankedCount: 0
-    property string lastQuery: ""
 
-    property bool isBusy: pipelineStage !== "idle" && pipelineStage !== "done" && pipelineStage !== "error"
+    property bool isBusy: backend.busy
 
     property int streamingItemIndex: -1
+
+    property bool _pendingSources: false
+    property var _pendingSourcesData: []
 
     MDConverter { id: mdConverter }
 
     ListModel { id: chatModel }
+    ListModel { id: sourcesModel }
+
+    Connections {
+        target: backend
+
+        onStageChanged: {
+            if (backend.pipelineStage !== "") {
+                pipelineStage = backend.pipelineStage
+                docCount = backend.stageCount
+                if (pipelineStage === "searching" && backend.stageCount > 0) {
+                    docCount = backend.stageCount
+                }
+                if (pipelineStage === "reranking" && backend.stageCount > 0) {
+                    rerankedCount = backend.stageCount
+                }
+            }
+        }
+
+        onStreamingTextChanged: {
+            streamingText = backend.streamingText
+            if (streamingItemIndex >= 0 && streamingItemIndex < chatModel.count) {
+                chatModel.setProperty(streamingItemIndex, "text", streamingText)
+            }
+        }
+
+        onSourcesReceived: {
+            sourcesModel.clear()
+            for (var i = 0; i < sources.length; i++) {
+                sourcesModel.append({
+                    index: sources[i].index || i,
+                    title: sources[i].title || "",
+                    source: sources[i].source || ""
+                })
+            }
+        }
+
+        onQueryFinished: {
+            streamingItemIndex = -1
+            scrollTimer.start()
+        }
+
+        onErrorOccurred: {
+            errorText = message
+            pipelineStage = "error"
+            if (streamingItemIndex >= 0 && streamingItemIndex < chatModel.count) {
+                chatModel.setProperty(streamingItemIndex, "text", "**Ошибка:** " + message)
+                streamingItemIndex = -1
+            }
+        }
+
+        onBackendStopped: {
+            pipelineStage = "idle"
+            streamingText = ""
+            errorText = ""
+            docCount = 0
+            rerankedCount = 0
+            streamingItemIndex = -1
+        }
+
+        onBackendReady: {
+            backend.requestProfiles()
+        }
+    }
 
     function stageColor(stage) {
         if (pipelineStage === "error") return "#ff4d4d"
@@ -82,14 +147,22 @@ Page {
     }
 
     function startSearch() {
-        if (searchInput.text.trim() === "" || isBusy) return
+        if (searchInput.text.trim() === "" || isBusy || !backend.ready) return
+
+        if (!backend.ready) {
+            chatModel.append({
+                "type": "bot",
+                "text": "**Бэкенд ещё не готов.** Подождите..."
+            })
+            return
+        }
 
         var query = searchInput.text.trim()
-        lastQuery = query
         streamingText = ""
         errorText = ""
-        docCount = 5
-        rerankedCount = 3
+        docCount = 0
+        rerankedCount = 0
+        sourcesModel.clear()
 
         chatModel.append({ "type": "user", "text": query })
         chatModel.append({ "type": "bot", "text": "..." })
@@ -98,7 +171,7 @@ Page {
         searchInput.text = ""
         pipelineStage = "searching"
         scrollTimer.start()
-        simulatePipeline()
+        backend.sendQuery(query)
     }
 
     function stopSearch() {
@@ -114,60 +187,7 @@ Page {
                 chatModel.setProperty(idx, "text", currentText + "\n\n*[Прервано]*")
             }
         }
-        pipelineStage = "idle"
-        streamingText = ""
-        errorText = ""
-    }
-
-    function simulatePipeline() {
-        if (pipelineStage === "error" || pipelineStage === "idle") return
-
-        if (pipelineStage === "searching") {
-            queryTimer.interval = 1200
-            queryTimer.callback = function() {
-                if (pipelineStage !== "searching") return
-                pipelineStage = "reranking"
-                simulatePipeline()
-            }
-            queryTimer.start()
-        } else if (pipelineStage === "reranking") {
-            queryTimer.interval = 800
-            queryTimer.callback = function() {
-                if (pipelineStage !== "reranking") return
-                pipelineStage = "prefill"
-                simulatePipeline()
-            }
-            queryTimer.start()
-        } else if (pipelineStage === "prefill") {
-            queryTimer.interval = 500
-            queryTimer.callback = function() {
-                if (pipelineStage !== "prefill") return
-                pipelineStage = "streaming"
-                scrollTimer.start()
-                simulateStreaming()
-            }
-            queryTimer.start()
-        }
-    }
-
-    function simulateStreaming() {
-        streamingText = ""
-        var fullText = "Это пример ответа на ваш запрос. Модель обрабатывает контекст и генерирует релевантный ответ на основе найденных документов.\n\n**Ключевые моменты:**\n- Найдено " + docCount + " релевантных документов\n- Отобрано " + rerankedCount + " для контекста\n- Ответ сгенерирован на устройстве через llama.cpp\n\n```\nПример кода\n```\n\nОтвет завершён."
-        var pos = 0
-        var streamTimer = Qt.createQmlObject('import QtQuick 2.0; Timer { interval: 30; repeat: true; property var callback; property string text; property int pos: 0; onTriggered: { if (pos < text.length) { callback(text.substring(0, pos + 2)); pos += 2; } else { stop(); callback(text); } } }', root, "streamTimer")
-        streamTimer.text = fullText
-        streamTimer.callback = function(text) {
-            streamingText = text
-            if (streamingItemIndex >= 0 && streamingItemIndex < chatModel.count) {
-                chatModel.setProperty(streamingItemIndex, "text", text)
-            }
-            if (text.length >= fullText.length) {
-                pipelineStage = "done"
-                streamingItemIndex = -1
-                scrollTimer.start()
-            }
-        }
-        streamTimer.start()
+        backend.cancelQuery()
     }
 
     Timer {
@@ -180,16 +200,8 @@ Page {
         id: streamScrollTimer
         interval: 300
         repeat: true
-        running: pipelineStage === "streaming" && root.state === "active"
+        running: backend.streaming && root.state === "active"
         onTriggered: chatFlickable.scrollToBottom()
-    }
-
-    Timer {
-        id: queryTimer
-        interval: 1
-        repeat: false
-        property var callback: function() {}
-        onTriggered: callback()
     }
 
     state: (searchInput.activeFocus || chatModel.count > 0 || isBusy) ? "active" : "default"
@@ -212,7 +224,9 @@ Page {
             if (pipelineStage === "error") return "#F44336"
             if (isBusy) return "#FF9800"
             if (pipelineStage === "done") return "#4CAF50"
-            return "#4CAF50"
+            if (backend.status === "ready") return "#4CAF50"
+            if (backend.status === "connecting") return "#2196F3"
+            return "#F44336"
         }
 
         SequentialAnimation on scale {
@@ -293,7 +307,7 @@ Page {
                     color: model.type === "user" ? "#2e67f2" : "#f1f3f5"
                     anchors.right: model.type === "user" ? parent.right : undefined
 
-                    property bool isStreamingThis: (model.index === root.streamingItemIndex) && pipelineStage === "streaming"
+                    property bool isStreamingThis: (model.index === root.streamingItemIndex) && backend.streaming
 
                     Column {
                         id: msgPartsColumn
@@ -444,7 +458,10 @@ Page {
         id: statusLabel
         text: {
             if (pipelineStage === "error") return qsTr("Ошибка")
-            if (pipelineStage === "searching" || pipelineStage === "reranking") return qsTr("Поиск и подготовка контекста...")
+            if (backend.status === "starting" || backend.status === "connecting")
+                return qsTr("Запуск бэкенда, загрузка модели...")
+            if (pipelineStage === "searching" || pipelineStage === "reranking")
+                return qsTr("Поиск и подготовка контекста...")
             if (pipelineStage === "streaming") return qsTr("Генерация ответа...")
             return ""
         }
@@ -453,7 +470,7 @@ Page {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: profileLabel.top
         anchors.bottomMargin: 4 * dP
-        visible: pipelineStage !== "idle" && pipelineStage !== "done"
+        visible: text !== ""
     }
 
     Label {
@@ -496,9 +513,13 @@ Page {
                 Keys.onEnterPressed: root.startSearch()
 
                 Text {
+                    id: placeholder
                     anchors.fill: parent
                     text: {
-                        if (isBusy) return qsTr("Подождите...")
+                        if (backend.status === "starting" || backend.status === "connecting")
+                            return qsTr("Загрузка модели...")
+                        if (backend.streaming)
+                            return qsTr("Генерация ответа...")
                         return root.state === "active"
                             ? qsTr("Введите вопрос...")
                             : qsTr("Воспользуйтесь интеллектуальным поиском Aseek...")

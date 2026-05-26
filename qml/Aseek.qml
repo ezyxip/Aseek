@@ -11,21 +11,47 @@ ApplicationWindow {
 
     property int currentProfileIndex: 0
 
+    onCurrentProfileIndexChanged: {
+        if (profilesModel.count > 0 && currentProfileIndex >= 0 && currentProfileIndex < profilesModel.count) {
+            if (backend.ready) {
+                backend.switchProfile(profilesModel.get(currentProfileIndex).name)
+            }
+        }
+    }
+
     BackendProcess {
         id: backend
         Component.onCompleted: start()
     }
 
-    ListModel {
-        id: profilesModel
-        Component.onCompleted: {
-            if (count === 0) {
-                append({
+    Connections {
+        target: backend
+
+        onProfilesReceived: {
+            profilesModel.clear()
+            for (var i = 0; i < profiles.length; i++) {
+                var p = profiles[i]
+                var servers = []
+                if (p.mcpServers) {
+                    servers = p.mcpServers
+                }
+                profilesModel.append({
+                    name: p.name || "",
+                    context: p.context || "",
+                    mcpServers: servers
+                })
+            }
+            if (profilesModel.count === 0) {
+                profilesModel.append({
                     name: "Profile1",
                     context: "Дефолтный контекст",
                     mcpServers: []
                 })
             }
         }
+    }
+
+    ListModel {
+        id: profilesModel
     }
 }

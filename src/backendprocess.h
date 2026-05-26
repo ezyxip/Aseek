@@ -2,6 +2,7 @@
 #define BACKENDPROCESS_H
 
 #include <QObject>
+#include <QProcess>
 #include <QLocalSocket>
 #include <QTimer>
 #include <QJsonArray>
@@ -34,6 +35,8 @@ public:
     QString stageDetail() const;
     int stageCount() const;
 
+    Q_INVOKABLE void start();
+    Q_INVOKABLE void stop();
     Q_INVOKABLE void connectToServer(const QString &socketPath = QString());
     Q_INVOKABLE void disconnectFromServer();
     Q_INVOKABLE void sendQuery(const QString &text);
@@ -61,6 +64,11 @@ private slots:
     void onDisconnected();
     void onReadyRead();
     void onError(QLocalSocket::LocalSocketError error);
+    void onOrchestratorFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onOrchestratorStarted();
+    void onOrchestratorError(QProcess::ProcessError error);
+    void tryConnect();
+    void retryConnect();
 
 private:
     struct TlvHeader {
@@ -97,10 +105,13 @@ private:
     void setStreaming(bool value);
     void setPipelineStage(const QString &stage, const QString &detail, int count);
 
+    QProcess *m_process;
     QLocalSocket *m_socket;
     QByteArray m_readBuf;
     QString m_status;
     QString m_lastError;
+    QTimer *m_retryTimer;
+    int m_retryCount;
 
     bool m_streaming;
     QString m_streamingText;

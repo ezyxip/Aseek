@@ -1,14 +1,14 @@
 {
   "llama": {
     "binary": "/usr/libexec/ru.pmifi.Aseek/llama-server",
-    "model": "/home/aurora/models/model.gguf",
+    "model": "/home/defaultuser/models/Vikhr-Qwen-2.5-1.5b-Instruct-Q4_K_M.gguf",
     "port": 9081,
     "ctx_size": 2048,
-    "threads": 4,
+    "threads": 6,
     "slots": 1,
     "batch": 256,
     "gpu_layers": 0,
-    "temperature": 0.7
+    "temperature": 0.8
   },
   "streaming": {
     "flush_interval_ms": 40

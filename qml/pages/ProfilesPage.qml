@@ -7,6 +7,12 @@ Page {
 
     readonly property real dP: Screen.width / 402
 
+    onStatusChanged: {
+        if (status === PageStatus.Active) {
+            backend.requestProfiles()
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: "#f8fafd"

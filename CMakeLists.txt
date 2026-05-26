@@ -85,6 +85,8 @@ set(ORCHESTRATOR_BIN ${PREBUILT_DIR}/aseek-orchestrator)
 add_executable(${PROJECT_NAME} ${SOURCES} ${QmFiles})
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>
+    LIBEXEC_DIR="${LIBEXEC_DIR}"
+    DATA_DIR="${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}"
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
     $<BUILD_INTERFACE:

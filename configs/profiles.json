@@ -4,7 +4,7 @@
     "prompt": "Ты помогаешь студенту с разбором его ученической базы знаний. Не отвечай не по этой теме.",
     "servers": [
       {
-        "url": "http://127.0.0.1:8080",
+        "url": "https://shortly-genial-rattail.cloudpub.ru/",
         "weight": 1.0
       }
     ]
