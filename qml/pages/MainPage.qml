@@ -253,7 +253,7 @@ Page {
         id: chatFlickable
         anchors.top: logo.bottom
         anchors.topMargin: 10 * dP
-        anchors.bottom: pipelineIndicator.visible ? pipelineIndicator.top : statusLabel.visible ? statusLabel.top : profileLabel.top
+        anchors.bottom: pipelineIndicator.visible ? pipelineIndicator.top : searchContainer.top
         anchors.bottomMargin: 10 * dP
         anchors.left: parent.left
         anchors.right: parent.right
@@ -498,33 +498,19 @@ Page {
     }
 
     Label {
-        id: statusLabel
-        text: {
-            if (pipelineStage === "error") return qsTr("Ошибка")
-            if (backend.status === "starting" || backend.status === "connecting")
-                return qsTr("Запуск бэкенда, загрузка модели...")
-            if (pipelineStage === "searching" || pipelineStage === "reranking")
-                return qsTr("Поиск и подготовка контекста...")
-            if (pipelineStage === "streaming") return qsTr("Генерация ответа...")
-            return ""
-        }
-        color: "#2e67f2"
-        font.pixelSize: 13 * dP
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: profileLabel.top
-        anchors.bottomMargin: 4 * dP
-        visible: text !== ""
-    }
-
-    Label {
         id: profileLabel
-        text: qsTr("Текущий профиль: ") + (profilesModel.count > 0 ? profilesModel.get(currentProfileIndex).name : qsTr("Не выбран"))
+        text: (profilesModel.count > 0 ? profilesModel.get(currentProfileIndex).name : qsTr("Профиль не выбран"))
         color: "#a0a0a0"
         font.pixelSize: Theme.fontSizeExtraSmall
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.state === "active"
-           ? searchContainer.y - height - Theme.paddingSmall
-           : searchContainer.y + searchContainer.height + Theme.paddingSmall
+
+        anchors {
+            left: logo.right
+            leftMargin: root.state === "active" ? 6 * dP : 0
+            verticalCenter: logo.verticalCenter
+        }
+
+        Behavior on anchors.leftMargin { NumberAnimation { duration: 350; easing.type: Easing.InOutCubic } }
+        visible: root.state === "active"
     }
 
     Row {
