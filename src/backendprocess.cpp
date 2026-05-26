@@ -10,6 +10,7 @@ BackendProcess::BackendProcess(QObject *parent)
     : QObject(parent)
     , m_process(nullptr)
     , m_socket(nullptr)
+    , m_logFile(nullptr)
     , m_status("stopped")
     , m_streaming(false)
     , m_reqId(0)
@@ -20,7 +21,19 @@ BackendProcess::BackendProcess(QObject *parent)
     m_retryTimer->setSingleShot(true);
     connect(m_retryTimer, &QTimer::timeout, this, &BackendProcess::tryConnect);
 
-    log(QStringLiteral("BackendProcess constructed"));
+    QString logPath = QString::fromUtf8(qgetenv("XDG_RUNTIME_DIR"));
+    if (logPath.isEmpty())
+        logPath = QStringLiteral("/tmp");
+    logPath += QStringLiteral("/aseek-backend.log");
+
+    m_logFile = new QFile(logPath, this);
+    if (m_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+        m_logStream.setDevice(m_logFile);
+    } else {
+        qWarning() << "BackendProcess: cannot open log file" << logPath << m_logFile->errorString();
+    }
+
+    log(QStringLiteral("BackendProcess constructed, log=%1").arg(logPath));
 }
 
 BackendProcess::~BackendProcess()
@@ -70,6 +83,9 @@ void BackendProcess::log(const QString &message)
     QString ts = QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyy-MM-ddTHH:mm:ss.zzzZ"));
     QString line = QStringLiteral("[%1] %2").arg(ts, message);
     qDebug().noquote() << "[BackendProcess]" << message;
+    if (m_logStream.device())
+        m_logStream << line << '\n';
+    m_logStream.flush();
 }
 
 void BackendProcess::logEnv()

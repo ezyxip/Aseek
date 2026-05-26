@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QtGlobal>
 #include <QFile>
+#include <QTextStream>
 #include <QDateTime>
 #include <QDir>
 
@@ -113,6 +114,8 @@ private:
 
     QProcess *m_process;
     QLocalSocket *m_socket;
+    QFile *m_logFile;
+    QTextStream m_logStream;
     QByteArray m_readBuf;
     QString m_status;
     QString m_lastError;
