@@ -21,6 +21,7 @@ Page {
 
     property bool _pendingSources: false
     property var _pendingSourcesData: []
+    property int currentSourcesBotIndex: -1
 
     MDConverter { id: mdConverter }
 
@@ -59,6 +60,7 @@ Page {
                     source: sources[i].source || ""
                 })
             }
+            currentSourcesBotIndex = streamingItemIndex
         }
 
         onQueryFinished: {
@@ -82,6 +84,7 @@ Page {
             docCount = 0
             rerankedCount = 0
             streamingItemIndex = -1
+            currentSourcesBotIndex = -1
         }
 
         onBackendReady: {
@@ -163,6 +166,7 @@ Page {
         docCount = 0
         rerankedCount = 0
         sourcesModel.clear()
+        currentSourcesBotIndex = -1
 
         chatModel.append({ "type": "user", "text": query })
         chatModel.append({ "type": "bot", "text": "..." })
@@ -302,78 +306,144 @@ Page {
                     property var messageParts: mdConverter.parseToParts(model.text)
 
                     width: parent.width * 0.85
-                    height: msgPartsColumn.height + 30 * dP
+                    height: contentCol.height + 30 * dP
                     radius: 15 * dP
                     color: model.type === "user" ? "#2e67f2" : "#f1f3f5"
                     anchors.right: model.type === "user" ? parent.right : undefined
 
-                    property bool isStreamingThis: (model.index === root.streamingItemIndex) && backend.streaming
+                    property bool isStreamingThis: (index === root.streamingItemIndex) && backend.streaming
+                    property bool showSources: model.type === "bot"
+                                              && index === root.currentSourcesBotIndex
+                                              && sourcesModel.count > 0
+                                              && !isStreamingThis
 
                     Column {
-                        id: msgPartsColumn
+                        id: contentCol
                         width: parent.width - 30 * dP
                         anchors.centerIn: parent
                         spacing: 8 * dP
 
-                        Repeater {
-                            model: bubble.messageParts
+                        Column {
+                            id: msgPartsColumn
+                            width: parent.width
+                            spacing: 8 * dP
 
-                            delegate: Column {
-                                width: msgPartsColumn.width
+                            Repeater {
+                                model: bubble.messageParts
 
-                                Text {
-                                    visible: !modelData.isCode
-                                    width: parent.width
-                                    height: visible ? implicitHeight : 0
-                                    text: !modelData.isCode ? String(modelData.content) : ""
-                                    textFormat: Text.RichText
-                                    wrapMode: Text.Wrap
-                                    font.pixelSize: Theme.fontSizeMedium * root.fontScale
-                                    color: model.type === "user" ? "white" : "black"
+                                delegate: Column {
+                                    width: msgPartsColumn.width
+
+                                    Text {
+                                        visible: !modelData.isCode
+                                        width: parent.width
+                                        height: visible ? implicitHeight : 0
+                                        text: !modelData.isCode ? String(modelData.content) : ""
+                                        textFormat: Text.RichText
+                                        wrapMode: Text.Wrap
+                                        font.pixelSize: Theme.fontSizeMedium * root.fontScale
+                                        color: model.type === "user" ? "white" : "black"
+                                    }
+
+                                    SilicaFlickable {
+                                        id: codeBox
+                                        visible: modelData.isCode
+                                        width: parent.width
+                                        height: visible ? (codeLabel.implicitHeight + 20 * dP) : 0
+                                        contentWidth: Math.max(width, codeLabel.implicitWidth + 40 * dP)
+                                        flickableDirection: Flickable.HorizontalFlick
+                                        clip: true
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: "#000000"
+                                            opacity: 0.1
+                                            radius: 6 * dP
+                                        }
+
+                                        Label {
+                                            id: codeLabel
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            x: 15 * dP
+                                            text: modelData.isCode ? String(modelData.content) : ""
+                                            font.family: "Monospace"
+                                            font.pixelSize: Theme.fontSizeExtraSmall * root.fontScale
+                                            color: "#d63384"
+                                        }
+
+                                        HorizontalScrollDecorator { flickable: codeBox }
+                                    }
                                 }
+                            }
 
-                                SilicaFlickable {
-                                    id: codeBox
-                                    visible: modelData.isCode
-                                    width: parent.width
-                                    height: visible ? (codeLabel.implicitHeight + 20 * dP) : 0
-                                    contentWidth: Math.max(width, codeLabel.implicitWidth + 40 * dP)
-                                    flickableDirection: Flickable.HorizontalFlick
-                                    clip: true
+                            Text {
+                                visible: bubble.isStreamingThis
+                                text: "\u258C"
+                                font.pixelSize: Theme.fontSizeMedium * root.fontScale
+                                color: "#2e67f2"
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        color: "#000000"
-                                        opacity: 0.1
-                                        radius: 6 * dP
-                                    }
-
-                                    Label {
-                                        id: codeLabel
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        x: 15 * dP
-                                        text: modelData.isCode ? String(modelData.content) : ""
-                                        font.family: "Monospace"
-                                        font.pixelSize: Theme.fontSizeExtraSmall * root.fontScale
-                                        color: "#d63384"
-                                    }
-
-                                    HorizontalScrollDecorator { flickable: codeBox }
+                                SequentialAnimation on opacity {
+                                    running: bubble.isStreamingThis
+                                    loops: Animation.Infinite
+                                    NumberAnimation { from: 1.0; to: 0.0; duration: 500 }
+                                    NumberAnimation { from: 0.0; to: 1.0; duration: 500 }
                                 }
                             }
                         }
 
-                        Text {
-                            visible: bubble.isStreamingThis
-                            text: "\u258C"
-                            font.pixelSize: Theme.fontSizeMedium * root.fontScale
-                            color: "#2e67f2"
+                        Column {
+                            width: parent.width
+                            spacing: 4 * dP
+                            visible: bubble.showSources
 
-                            SequentialAnimation on opacity {
-                                running: bubble.isStreamingThis
-                                loops: Animation.Infinite
-                                NumberAnimation { from: 1.0; to: 0.0; duration: 500 }
-                                NumberAnimation { from: 0.0; to: 1.0; duration: 500 }
+                            Label {
+                                text: qsTr("Источники:")
+                                font.pixelSize: Theme.fontSizeSmall * root.fontScale
+                                color: "#808080"
+                            }
+
+                            Repeater {
+                                model: sourcesModel
+
+                                delegate: Rectangle {
+                                    width: parent.width
+                                    height: 28 * dP
+                                    radius: 6 * dP
+                                    color: "#e8f0fe"
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 6 * dP
+                                        anchors.rightMargin: 6 * dP
+                                        spacing: 4 * dP
+
+                                        Label {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: "\uD83D\uDD17"
+                                            font.pixelSize: Theme.fontSizeSmall * root.fontScale
+                                        }
+
+                                        Label {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: parent.width - 24 * dP
+                                            text: model.title || (qsTr("Источник ") + (model.index + 1))
+                                            font.pixelSize: Theme.fontSizeExtraSmall * root.fontScale
+                                            color: "#2e67f2"
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (model.source)
+                                                Qt.openUrlExternally(model.source)
+                                        }
+                                        onPressed: parent.opacity = 0.6
+                                        onReleased: parent.opacity = 1.0
+                                        onCanceled: parent.opacity = 1.0
+                                    }
+                                }
                             }
                         }
                     }
