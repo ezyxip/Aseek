@@ -216,33 +216,6 @@ Page {
         z: -1
     }
 
-    Rectangle {
-        id: backendIndicator
-        width: 10 * dP; height: 10 * dP
-        radius: 5 * dP
-        anchors {
-            top: parent.top; left: parent.left
-            topMargin: 25 * dP; leftMargin: 10 * dP
-        }
-        color: {
-            if (pipelineStage === "error") return "#F44336"
-            if (isBusy) return "#FF9800"
-            if (pipelineStage === "done") return "#4CAF50"
-            if (backend.status === "ready") return "#4CAF50"
-            if (backend.status === "connecting") return "#2196F3"
-            return "#F44336"
-        }
-
-        SequentialAnimation on scale {
-            running: isBusy
-            loops: Animation.Infinite
-            NumberAnimation { from: 1.0; to: 1.3; duration: 400 }
-            NumberAnimation { from: 1.3; to: 1.0; duration: 400 }
-        }
-
-        Behavior on color { ColorAnimation { duration: 300 } }
-    }
-
     Image {
         id: settingsButton
         source: Qt.resolvedUrl("../../images/settings.png")
